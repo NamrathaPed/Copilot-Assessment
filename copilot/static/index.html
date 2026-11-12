@@ -1,0 +1,36 @@
+<!doctype html>
+<html><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Shop-Floor Copilot</title>
+<style>
+ body{font-family:system-ui,sans-serif;margin:0;padding:16px;max-width:640px;margin:auto;font-size:18px}
+ textarea{width:100%;box-sizing:border-box;font-size:18px;padding:12px;border-radius:8px;border:1px solid #888}
+ button{width:100%;padding:14px;font-size:18px;margin-top:8px;border:0;border-radius:8px;background:#0b5fff;color:#fff}
+ .card{border:1px solid #ccc;border-radius:8px;padding:12px;margin-top:12px;white-space:pre-wrap}
+ .warn{background:#fff3cd;border-color:#e0a800}
+ .nf{background:#f8d7da;border-color:#c0392b}
+ .src{font-size:15px;color:#333}
+ blockquote{margin:6px 0;padding-left:10px;border-left:4px solid #0b5fff}
+</style></head><body>
+<h2>Ask the documents</h2>
+<textarea id="q" rows="3" placeholder="e.g. What is the torque spec for ...?"></textarea>
+<button onclick="ask()">Ask</button>
+<div id="out"></div>
+<script>
+async function ask(){
+  const out=document.getElementById('out'), q=document.getElementById('q').value.trim();
+  if(!q) return; out.innerHTML='<div class="card">Searching…</div>';
+  try{
+    const r=await fetch('/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})});
+    const d=await r.json(); let h='';
+    if(!d.found){ h=`<div class="card nf">${esc(d.answer)}</div>`; }
+    else{
+      if(d.safety) h+='<div class="card warn"><b>⚠ Safety-critical.</b> Confirm against the original document before acting.</div>';
+      h+=`<div class="card">${esc(d.answer)}</div>`;
+      h+=d.sources.map(s=>`<div class="card src"><b>${esc(s.file)}</b> — page ${s.page}<blockquote>${esc(s.quote)}</blockquote></div>`).join('');
+    }
+    out.innerHTML=h;
+  }catch(e){ out.innerHTML='<div class="card nf">Could not reach the server.</div>'; }
+}
+function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+</script></body></html>
